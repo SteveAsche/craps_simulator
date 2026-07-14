@@ -1,5 +1,65 @@
 #program to simulat different betting strategies and the payoff with craps
 from random import randint
+
+wager = 5
+workingPoint = 0
+pointOn = False
+
+betDict = {
+    "4": 0,
+    "5": 0,
+    "6": 0,
+    "8": 0,
+    "9": 0,
+    "10": 0,
+    "odds": True,
+    "oddsBet": 0
+}
+
+payout = {
+    "4": 1.8,
+    "5": 1.4,
+    "6": 1.16667,
+    "8": 1.16777,
+    "9": 1.4,
+    "10": 1.8
+}
+
+oddsBets = {
+    "4": 2,
+    "5": 1.5,
+    "6": 1.2,
+    "8": 1.2,
+    "9": 1.5,
+    "10": 2
+
+}
+
+standardWager = {
+    "4": 5,
+    "5": 5,
+    "6": 5,
+    "8": 5,
+    "9": 5,
+    "10": 5
+}
+
+standardLineWager = {
+    "4": 0,
+    "5": 0,
+    "6": 6,
+    "8": 6,
+    "9": 0,
+    "10": 0
+}
+
+bettingStrategy = "aggressive"
+betlist = ["4","5","6","8","9","10"]
+carryOver = True
+rolls = []
+currentState = []
+startingAmount = int(1000)
+
 # create a dice rolling simulation
 
 class Die:
@@ -68,119 +128,139 @@ Tip: Bet in multiples of $5 to win $4.
 # keep bets simple
 
 #global variables
-startingAmount = 1000
-wager = 5
-workingPoint = 0
-pointOn = False
-betDict = {
-    "4": 0,
-    "5": 0,
-    "6": 0,
-    "8": 0,
-    "9": 0,
-    "10": 0,
-    "odds": True,
-    "oddsBet": 0
-}
+# startingAmount = 1000
 
-payout = {
-    "4": 1.8,
-    "5": 1.4,
-    "6": 1.16667,
-    "8": 1.16777,
-    "9": 1.4,
-    "10": 1.8
-}
-
-oddsBets = {
-    "4": 2,
-    "5": 1.5,
-    "6": 1.2,
-    "8": 1.2,
-    "9": 1.5,
-    "10": 2
-
-}
-
-standardWager = {
-    "4": 5,
-    "5": 5,
-    "6": 5,
-    "8": 5,
-    "9": 5,
-    "10": 5
-}
-
-standardLineWager = {
-    "4": 5,
-    "5": 5,
-    "6": 6,
-    "8": 6,
-    "9": 5,
-    "10": 5
-}
-
-bettingStrategy = "aggressive"
-betlist = ["4","5","6","8","9","10"]
-carryOver = True
-rolls = []
-currentState = []
 
 def comeout():
+    global startingAmount
+    global wager
+    global pointOn
+    global carryOver
+    startingAmount -= wager
+
     newPoint = die1.roll() + die2.roll()
     if newPoint == 2 or newPoint == 3 or newPoint == 12:
         print("Craps you lose")
-        startingAmount -= wager
+        pointOn = False
+
     elif newPoint == 7 or newPoint == 11:
-        print("winner")
+        print("winner", end=" ")
         startingAmount += wager
+        pointOn = False
     else:
-        workingPoint = newPoint
+        #workingPoint = newPoint
+        setWager(newPoint)
         pointOn = True
-    return workingPoint
+    return newPoint
 
 def setWager(rollPoint):
     # if betting strategy is aggressive - buy odds and the place
+    global carryOver
+    global startingAmount
+    global wager
+    global betDict
+    print(f"the rollpoint is {rollPoint}", end=" ")
+
     strPoint = str(rollPoint)
-    if bettingStrategy == "aggressive" and carryOver:
+    if bettingStrategy == "aggressive" and not carryOver:
         for bet in betlist:
             if bet != strPoint:
                 betDict[bet] = standardLineWager[bet]
                 startingAmount -= standardLineWager[bet]
     if betDict["odds"]:
-        betDict["oddsBet"] = wager
-        startingAmount -= wager
+        betDict["oddsBet"] = standardWager[strPoint]
+        startingAmount -= standardWager[strPoint]
 
 def workingRoll(rollPoint):
     #rollPoint is the working roll amount
     #shoot a new roll
+    global pointOn
+    global carryOver
+    global startingAmount
+    global wager
+    global standardLineWager
+    global oddsBets
+    global payout
+    global betlist
+
     newPoint = die1.roll() + die2.roll()
     compPoint = str(newPoint)
 
     if newPoint == 7:
 
-        print("ah craps")
+        print("ah craps", end=" ")
+        pointOn = False
+        carryOver = False
         for bet in betlist:
             betDict[bet] = 0
             betDict["oddsBet"] = 0
-            pointOn = False
-            carryOver = False
+
     elif newPoint == rollPoint:
         startingAmount += wager
-        startingAmount += standardLineWager[compPoint] * oddsBets[compPoint]
+        startingAmount += int(standardWager[compPoint] * oddsBets[compPoint])
+        print(f"Point {rollPoint} made", end=" ")
         pointOn = False
         carryOver = True
-    elif rollPoint != 2 or rollPoint != 3 or rollPoint != 11 or rollPoint != 12:
-            startingAmount += standardLineWager[compPoint] * payout[compPoint]
+    elif (newPoint != 2 and newPoint != 3 and newPoint != 11 and newPoint != 12):
+            
+            startingAmount += int(standardLineWager[compPoint] * payout[compPoint])
+    return newPoint
 
 
 
-for x in range(100):
-    if pointOn:
-        workingRoll(workingPoint)
-    else:
-        workingPoint = comeout()
-        setWager(workingPoint)
-    print(startingAmount)
+
+# each time the simulation is run, record how much we end with
+zarray = []
+simcount = 100
+for z in range(simcount):
+    tallyArray = []
+    for y in range(100):
+        startingAmount = 1000
+        for x in range(300):
+            if pointOn:
+                currRoll = workingRoll(workingPoint)
+                #print(f"workingpoint {workingPoint} current roll {currRoll} balance {startingAmount}")
+
+            else:
+                workingPoint = comeout()
+                #print(f"comeout - new point {workingPoint} balance {startingAmount}")
+        tallyArray.append(startingAmount)
+
+    tallyamount = 0
+    mademoney = 0
+    lostmoney = 0
+    tcount = 0
+
+    for tally in tallyArray:
+        tallyamount += tally
+        if tally > 1000:
+            mademoney += 1
+        else:
+            lostmoney += 1
+        tcount += 1
+
+    print("")
+    print("")
+    print(f"Average = {int(tallyamount/tcount)} mademoney = {mademoney} lostmoney = {lostmoney}")
+    zarray.append(([mademoney], [lostmoney]))
+
+pcount = 0
+lcount = 0
+for row in zarray:
+    first = True
+    for zitem in row:
+        #print(zitem)
+        if first and zitem[0] > 0:
+            pcount += zitem[0]
+            first = False
+        elif zitem[0] > 0:
+            lcount += zitem[0]
+
+print(f"For {simcount} simulations {lcount} lost money {pcount} made money")
+
+
+
+
+
 
 
